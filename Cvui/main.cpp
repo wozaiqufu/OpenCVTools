@@ -6,10 +6,12 @@ using namespace cv;
 
 int main(void)
 {
-    Mat frame = Mat(500,1200,CV_8UC3);
+    Mat frame = Mat(450,900,CV_8UC3);
     int count = 0;
     double counterFloat = 0.0;
     double trackBarValue = 0.0;
+    bool checked1 = false;
+    bool checked2 = true;
     namedWindow(WINDOW_NAME);
     cvui::init(WINDOW_NAME);
     for(;;)
@@ -26,7 +28,6 @@ int main(void)
             count++;
         }
         cvui::printf(frame,100,48,0.4,0xff0000,"button click count: %d",count);
-        cvui::update();
         //window component
         cvui::window(frame,10,80,200,180,"Window");
         //counter component:int
@@ -34,7 +35,14 @@ int main(void)
         //counter used as doubles default step:0.5,"%.2f"
         cvui::counter(frame,10,320,&counterFloat,0.1);
         //trackBar component
-        cvui::trackbar(frame,250,20,100,&trackBarValue,0.,50.);
+        cvui::trackbar(frame,350,20,300,&trackBarValue,0.,100.);
+        cvui::printf(frame,350,90,0.4,0xff000,"current trackbar value is:%.2f",trackBarValue);
+        //checkboxes
+        cvui::checkbox(frame,350,130,"checkbox",&checked1);
+        cvui::checkbox(frame,350,170,"a checked box",&checked2);
+        //update must be called after all components
+        //it handles mouse click and others behind the scene with magic!
+        cvui::update();
         imshow(WINDOW_NAME,frame);
         if(waitKey(20)==27)//press escp to exit the process
         {
