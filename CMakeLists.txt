@@ -25,4 +25,5 @@ include_directories("${PROJECT_SOURCE_DIR}")
 add_subdirectory(BlendImages)
 add_subdirectory(Drawings)
 add_subdirectory(Face)
+add_subdirectory(Pca)
 
