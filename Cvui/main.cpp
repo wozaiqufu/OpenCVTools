@@ -27,6 +27,7 @@ int main(void)
         {
             count++;
         }
+
         cvui::printf(frame,100,48,0.4,0xff0000,"button click count: %d",count);
         //window component
         cvui::window(frame,10,80,200,180,"Window");
