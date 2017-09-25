@@ -1,0 +1,15 @@
+../data/s1/1.pgm
+../data/s2/1.pgm
+../data/s3/1.pgm
+../data/s4/1.pgm
+../data/s5/1.pgm
+../data/s6/1.pgm
+../data/s7/1.pgm
+../data/s8/1.pgm
+../data/s9/1.pgm
+../data/s10/1.pgm
+../data/s11/1.pgm
+../data/s12/1.pgm
+../data/s13/1.pgm
+../data/s14/1.pgm
+../data/s15/1.pgm

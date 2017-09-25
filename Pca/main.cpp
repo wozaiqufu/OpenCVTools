@@ -1,150 +1,136 @@
-/**
- * @file introduction_to_pca.cpp
- * @brief This program demonstrates how to use OpenCV PCA to extract the orienation of an object
- * @author OpenCV team
- */
-
 #include <iostream>
-#include <opencv2/opencv.hpp>
-
-using namespace std;
+#include <fstream>
+#include <sstream>
+#include <opencv2/core.hpp>
+#include "opencv2/imgcodecs.hpp"
+#include <opencv2/highgui.hpp>
 using namespace cv;
+using namespace std;
 
-// Function declarations
-void drawAxis(Mat&, Point, Point, Scalar, const float);
-double getOrientation(const vector<Point> &, Mat&);
-
-/**
- * @function drawAxis
- */
-void drawAxis(Mat& img, Point p, Point q, Scalar colour, const float scale = 0.2)
+struct params
 {
-//! [visualization1]
-    double angle;
-    double hypotenuse;
-    angle = atan2( (double) p.y - q.y, (double) p.x - q.x ); // angle in radians
-    hypotenuse = sqrt( (double) (p.y - q.y) * (p.y - q.y) + (p.x - q.x) * (p.x - q.x));
-//    double degrees = angle * 180 / CV_PI; // convert radians to degrees (0-180 range)
-//    cout << "Degrees: " << abs(degrees - 180) << endl; // angle in 0-360 degrees range
+    Mat data;
+    int ch;
+    int rows;
+    PCA pca;
+    string winName;
+};
 
-    // Here we lengthen the arrow by a factor of scale
-    q.x = (int) (p.x - scale * hypotenuse * cos(angle));
-    q.y = (int) (p.y - scale * hypotenuse * sin(angle));
-    line(img, p, q, colour, 1, CV_AA);
+const char* keys =
+        {
+                "{filename |../imgList.txt | image list file}"
+        };
 
-    // create the arrow hooks
-    p.x = (int) (q.x + 9 * cos(angle + CV_PI / 4));
-    p.y = (int) (q.y + 9 * sin(angle + CV_PI / 4));
-    line(img, p, q, colour, 1, CV_AA);
-
-    p.x = (int) (q.x + 9 * cos(angle - CV_PI / 4));
-    p.y = (int) (q.y + 9 * sin(angle - CV_PI / 4));
-    line(img, p, q, colour, 1, CV_AA);
-//! [visualization1]
+static void readImgList(const string& filename,vector<Mat>& images)
+{
+    std::ifstream file(filename.c_str(), ifstream::in);
+    if (!file) {
+        string error_message = "No valid input file was given, please check the given filename.";
+        CV_Error(Error::StsBadArg, error_message);
+    }
+    string line;
+    while (getline(file, line)) {
+        images.push_back(imread(line, 0));
+    }
+}
+//each image M*N,then the output Mat is numberof(images)*(M*N) flat matrix
+static Mat formatImagesForPCA(const vector<Mat>& data)
+{
+    Mat dst(static_cast<int>(data.size()),data[0].rows*data[0].cols,CV_32F);
+    for(unsigned int i=0;i<data.size();i++)
+    {
+        Mat image_row = data[i].clone().reshape(1,1);
+        Mat row_i = dst.row(i);
+        image_row.convertTo(row_i,CV_32F);
+    }
+    return dst;
 }
 
-/**
- * @function getOrientation
- */
-double getOrientation(const vector<Point> &pts, Mat &img)
+static Mat toGrayscale(InputArray _src)
 {
-//! [pca]
-    //Construct a buffer used by the pca analysis
-    int sz = static_cast<int>(pts.size());
-    Mat data_pts = Mat(sz, 2, CV_64FC1);
-    for (int i = 0; i < data_pts.rows; ++i)
+    Mat src = _src.getMat();
+    //only allow one channel
+    if(src.channels()!=1)
     {
-        data_pts.at<double>(i, 0) = pts[i].x;
-        data_pts.at<double>(i, 1) = pts[i].y;
+        CV_Error(Error::StsBadArg,"Only matrices with one channel are supported!");
     }
+    //create and return normolized image
+    Mat dst;
+    cv::normalize(_src,dst,0,255,NORM_MINMAX,CV_8UC1);
+    return dst;
+}
+static void onTrackbar(int pos,void* ptr)
+{
+    cout<<"Retained Variance:"<<pos<<" %"<<endl;
+    cout<<"recalculating pca.."<<std::flush;
+    double var = pos/100.0;
+    struct params* p = (struct params *)ptr;
+    p->pca = PCA(p->data,cv::Mat(),PCA::DATA_AS_ROW,var);
 
-    //Perform PCA analysis
-    PCA pca_analysis(data_pts, Mat(), CV_PCA_DATA_AS_ROW);
+    Mat point = p->pca.project(p->data.row(0));
+    Mat reconstruction = p->pca.backProject(point);
+    reconstruction = reconstruction.reshape(p->ch,p->rows);
+    reconstruction = toGrayscale(reconstruction);
 
-    //Store the center of the object
-    Point cntr = Point(static_cast<int>(pca_analysis.mean.at<double>(0, 0)),
-                       static_cast<int>(pca_analysis.mean.at<double>(0, 1)));
-
-    //Store the eigenvalues and eigenvectors
-    vector<Point2d> eigen_vecs(2);
-    vector<double> eigen_val(2);
-    for (int i = 0; i < 2; ++i)
-    {
-        eigen_vecs[i] = Point2d(pca_analysis.eigenvectors.at<double>(i, 0),
-                                pca_analysis.eigenvectors.at<double>(i, 1));
-
-        eigen_val[i] = pca_analysis.eigenvalues.at<double>(i);
-    }
-
-//! [pca]
-//! [visualization]
-    // Draw the principal components
-    circle(img, cntr, 3, Scalar(255, 0, 255), 2);
-    Point p1 = cntr + 0.02 * Point(static_cast<int>(eigen_vecs[0].x * eigen_val[0]), static_cast<int>(eigen_vecs[0].y * eigen_val[0]));
-    Point p2 = cntr - 0.02 * Point(static_cast<int>(eigen_vecs[1].x * eigen_val[1]), static_cast<int>(eigen_vecs[1].y * eigen_val[1]));
-    drawAxis(img, cntr, p1, Scalar(0, 255, 0), 1);
-    drawAxis(img, cntr, p2, Scalar(255, 255, 0), 5);
-
-    double angle = atan2(eigen_vecs[0].y, eigen_vecs[0].x); // orientation in radians
-//! [visualization]
-
-    return angle;
+    imshow(p->winName,reconstruction);
+    cout<<"done! * of principle components:"<<p->pca.eigenvectors.rows<<endl;
 }
 
-/**
- * @function main
- */
 int main(int argc, char** argv)
 {
-//! [pre-process]
-    // Load image
-    String imageName("../data/pca_test1.jpg"); // by default
-    if (argc > 1)
+    cv::CommandLineParser parser(argc, argv, keys);
+    string file = parser.get<string>("filename");
+    vector<Mat> imgs;
+    try
     {
-        imageName = argv[1];
+        readImgList(file,imgs);
     }
-    Mat src = imread( imageName );
-
-    // Check if image is loaded successfully
-    if(!src.data || src.empty())
+    catch(cv::Exception& e)
     {
-        cout << "Problem loading image!!!" << endl;
-        return EXIT_FAILURE;
+        cerr<<"Error opening file \""<<file<<"\". Reason:"<<e.msg<<endl;
+        exit(1);
     }
-
-    imshow("src", src);
-
-    // Convert image to grayscale
-    Mat gray;
-    cvtColor(src, gray, COLOR_BGR2GRAY);
-
-    // Convert image to binary
-    Mat bw;
-    threshold(gray, bw, 50, 255, CV_THRESH_BINARY | CV_THRESH_OTSU);
-//! [pre-process]
-
-//! [contours]
-    // Find all the contours in the thresholded image
-    vector<Vec4i> hierarchy;
-    vector<vector<Point> > contours;
-    findContours(bw, contours, hierarchy, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
-
-    for (size_t i = 0; i < contours.size(); ++i)
+    //this demo needs at least 2 images
+    if(imgs.size()<=1)
     {
-        // Calculate the area of each contour
-        double area = contourArea(contours[i]);
-        // Ignore contours that are too small or too large
-        if (area < 1e2 || 1e5 < area) continue;
-
-        // Draw each contour only for visualisation purposes
-        drawContours(src, contours, static_cast<int>(i), Scalar(0, 0, 255), 2, 8, hierarchy, 0);
-        // Find the orientation of each shape
-        getOrientation(contours[i], src);
+        string error_message = "This demo needs at least 2 images to work! Please add more image to your data set!";
+        CV_Error(Error::StsError,error_message);
     }
-//! [contours]
+    //reshape and stack images into a row matrix
+    Mat data = formatImagesForPCA(imgs);
+    //perform pca
+    PCA pca(data,cv::Mat(),PCA::DATA_AS_ROW,0.95);
+    //demostration of the effect of retainedVaraince on the first image
+    Mat point = pca.project(data.row(0));//project into the eigenspace,thus the image becomes a point with each element
+    //representing the linear combination coefficients
+    Mat reconstruction = pca.backProject(point);//recreate the image from the "point"
+    reconstruction = reconstruction.reshape(imgs[0].channels(),imgs[0].rows);
+    reconstruction = toGrayscale(reconstruction);
 
-    imshow("output", src);
+    //init high GUI window
+    string windowname = "Reconstruction|press 'q' to quit!";
+    namedWindow(windowname,WINDOW_FULLSCREEN);
+    //param
+    params p;
+    p.data = data;
+    p.ch = imgs[0].channels();
+    p.rows = imgs[0].rows;
+    p.pca = pca;
+    p.winName = windowname;
 
-    waitKey(0);
+    //create the trackbar
+    int pos = 95;
+    createTrackbar("Retained Variance (%)",windowname,&pos,100,onTrackbar,(void*)&p);
+    //display until user press 'q'
+    imshow(windowname,reconstruction);
+
+    char key = 0;
+    while(key!='q')
+    {
+        key = (char)waitKey();
+    }
+//    cout<<file<<endl;
+//    parser.printMessage();
+//    cout<<"number of images:"<<imgs.size();
     return 0;
 }
