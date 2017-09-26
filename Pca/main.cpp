@@ -4,17 +4,12 @@
 #include <opencv2/core.hpp>
 #include "opencv2/imgcodecs.hpp"
 #include <opencv2/highgui.hpp>
+#include "cvui.h"
+
 using namespace cv;
 using namespace std;
 
-struct params
-{
-    Mat data;
-    int ch;
-    int rows;
-    PCA pca;
-    string winName;
-};
+#define WINDOW_NAME "PCA"
 
 const char* keys =
         {
@@ -33,11 +28,7 @@ static void readImgList(const string& filename,vector<Mat>& images)
         images.push_back(imread(line, 0));
     }
 }
-<<<<<<< HEAD
-//each image M*N,then the output Mat is numberof(images)*(M*N) flat matrix
-=======
-//each image M*N,then the output Mat is sizeof(images)*(M*N) flat matrix
->>>>>>> 0bd683414b64d820036d12bd0aa43d090530fbd6
+
 static Mat formatImagesForPCA(const vector<Mat>& data)
 {
     Mat dst(static_cast<int>(data.size()),data[0].rows*data[0].cols,CV_32F);
@@ -62,22 +53,6 @@ static Mat toGrayscale(InputArray _src)
     Mat dst;
     cv::normalize(_src,dst,0,255,NORM_MINMAX,CV_8UC1);
     return dst;
-}
-static void onTrackbar(int pos,void* ptr)
-{
-    cout<<"Retained Variance:"<<pos<<" %"<<endl;
-    cout<<"recalculating pca.."<<std::flush;
-    double var = pos/100.0;
-    struct params* p = (struct params *)ptr;
-    p->pca = PCA(p->data,cv::Mat(),PCA::DATA_AS_ROW,var);
-
-    Mat point = p->pca.project(p->data.row(0));
-    Mat reconstruction = p->pca.backProject(point);
-    reconstruction = reconstruction.reshape(p->ch,p->rows);
-    reconstruction = toGrayscale(reconstruction);
-
-    imshow(p->winName,reconstruction);
-    cout<<"done! * of principle components:"<<p->pca.eigenvectors.rows<<endl;
 }
 
 int main(int argc, char** argv)
@@ -111,40 +86,50 @@ int main(int argc, char** argv)
     reconstruction = reconstruction.reshape(imgs[0].channels(),imgs[0].rows);
     reconstruction = toGrayscale(reconstruction);
 
-    //init high GUI window
-    string windowname = "Reconstruction|press 'q' to quit!";
-    namedWindow(windowname,WINDOW_FULLSCREEN);
-    //param
-    params p;
-    p.data = data;
-    p.ch = imgs[0].channels();
-    p.rows = imgs[0].rows;
-    p.pca = pca;
-    p.winName = windowname;
-
-<<<<<<< HEAD
-    //create the trackbar
-=======
-    //create th trackbar
->>>>>>> 0bd683414b64d820036d12bd0aa43d090530fbd6
-    int pos = 95;
-    createTrackbar("Retained Variance (%)",windowname,&pos,100,onTrackbar,(void*)&p);
-    //display until user press 'q'
-    imshow(windowname,reconstruction);
-
-    char key = 0;
-    while(key!='q')
+    Mat frame = Mat(100,500,CV_8UC3);
+    int count = 0;
+    double counterFloat = 0.0;
+    double trackBarValue = 0.0;
+    bool checked1 = false;
+    bool checked2 = true;
+    namedWindow(WINDOW_NAME);
+    cvui::init(WINDOW_NAME);
+    for(;;)
     {
-        key = (char)waitKey();
+        //fill the frame with a nice color-RGB
+        frame = Scalar(40,50,40);
+        //show some text
+        cvui::text(frame,10,5,"This is PCA demostration");
+        //show text with what some algorithms' output
+        cvui::printf(frame,10,20,0.4,0x00ff00,"use printf formatting:%d + %.2f = %.2f",2,3.1,5.1);
+        //click button and on_button_clicked verified by printf
+        if(cvui::button(frame,10,40,"Button"))
+        {
+            count++;
+        }
+
+        cvui::printf(frame,100,48,0.4,0xff0000,"button click count: %d",count);
+        //window component
+        cvui::window(frame,10,80,200,180,"Window");
+        //counter component:int
+        cvui::counter(frame,10,300,&count);
+        //counter used as doubles default step:0.5,"%.2f"
+        cvui::counter(frame,10,320,&counterFloat,0.1);
+        //trackBar component
+        cvui::trackbar(frame,350,20,300,&trackBarValue,0.,100.);
+        cvui::printf(frame,350,90,0.4,0xff000,"current trackbar value is:%.2f",trackBarValue);
+        //checkboxes
+        cvui::checkbox(frame,350,130,"checkbox",&checked1);
+        cvui::checkbox(frame,350,170,"a checked box",&checked2);
+        //update must be called after all components
+        //it handles mouse click and others behind the scene with magic!
+        cvui::update();
+        imshow(WINDOW_NAME,frame);
+        if(waitKey(20)==27)//press escp to exit the process
+        {
+            break;
+        }
     }
-<<<<<<< HEAD
-//    cout<<file<<endl;
-//    parser.printMessage();
-//    cout<<"number of images:"<<imgs.size();
-=======
-    cout<<file<<endl;
-    parser.printMessage();
-    cout<<"number of images:"<<imgs.size();
->>>>>>> 0bd683414b64d820036d12bd0aa43d090530fbd6
+
     return 0;
 }
