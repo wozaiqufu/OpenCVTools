@@ -86,45 +86,34 @@ int main(int argc, char** argv)
     reconstruction = reconstruction.reshape(imgs[0].channels(),imgs[0].rows);
     reconstruction = toGrayscale(reconstruction);
 
-    Mat frame = Mat(100,500,CV_8UC3);
-    int count = 0;
-    double counterFloat = 0.0;
-    double trackBarValue = 0.0;
+    Mat frame = Mat(80,300,CV_8UC3);
+    double trackBarValue = 100.0;
     bool checked1 = false;
     bool checked2 = true;
     namedWindow(WINDOW_NAME);
     cvui::init(WINDOW_NAME);
+    namedWindow("Face",WINDOW_AUTOSIZE);
     for(;;)
     {
         //fill the frame with a nice color-RGB
         frame = Scalar(40,50,40);
         //show some text
         cvui::text(frame,10,5,"This is PCA demostration");
-        //show text with what some algorithms' output
-        cvui::printf(frame,10,20,0.4,0x00ff00,"use printf formatting:%d + %.2f = %.2f",2,3.1,5.1);
-        //click button and on_button_clicked verified by printf
-        if(cvui::button(frame,10,40,"Button"))
-        {
-            count++;
-        }
-
-        cvui::printf(frame,100,48,0.4,0xff0000,"button click count: %d",count);
-        //window component
-        cvui::window(frame,10,80,200,180,"Window");
-        //counter component:int
-        cvui::counter(frame,10,300,&count);
-        //counter used as doubles default step:0.5,"%.2f"
-        cvui::counter(frame,10,320,&counterFloat,0.1);
         //trackBar component
-        cvui::trackbar(frame,350,20,300,&trackBarValue,0.,100.);
-        cvui::printf(frame,350,90,0.4,0xff000,"current trackbar value is:%.2f",trackBarValue);
-        //checkboxes
-        cvui::checkbox(frame,350,130,"checkbox",&checked1);
-        cvui::checkbox(frame,350,170,"a checked box",&checked2);
+        cvui::trackbar(frame,50,30,200,&trackBarValue,0.,100.);
+
+        PCA pca_realTime(data,cv::Mat(),PCA::DATA_AS_ROW,trackBarValue/100.0);
+        //demostration of the effect of retainedVaraince on the first image
+        Mat point_realTime = pca_realTime.project(data.row(0));//project into the eigenspace,thus the image becomes a point with each element
+        //representing the linear combination coefficients
+        Mat reconstruction_realTime = pca_realTime.backProject(point_realTime);//recreate the image from the "point"
+        reconstruction_realTime = reconstruction_realTime.reshape(imgs[0].channels(),imgs[0].rows);
+        reconstruction_realTime = toGrayscale(reconstruction_realTime);
         //update must be called after all components
         //it handles mouse click and others behind the scene with magic!
         cvui::update();
         imshow(WINDOW_NAME,frame);
+        imshow("Face",reconstruction_realTime);
         if(waitKey(20)==27)//press escp to exit the process
         {
             break;
