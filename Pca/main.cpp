@@ -33,7 +33,11 @@ static void readImgList(const string& filename,vector<Mat>& images)
         images.push_back(imread(line, 0));
     }
 }
+<<<<<<< HEAD
 //each image M*N,then the output Mat is numberof(images)*(M*N) flat matrix
+=======
+//each image M*N,then the output Mat is sizeof(images)*(M*N) flat matrix
+>>>>>>> 0bd683414b64d820036d12bd0aa43d090530fbd6
 static Mat formatImagesForPCA(const vector<Mat>& data)
 {
     Mat dst(static_cast<int>(data.size()),data[0].rows*data[0].cols,CV_32F);
@@ -118,7 +122,11 @@ int main(int argc, char** argv)
     p.pca = pca;
     p.winName = windowname;
 
+<<<<<<< HEAD
     //create the trackbar
+=======
+    //create th trackbar
+>>>>>>> 0bd683414b64d820036d12bd0aa43d090530fbd6
     int pos = 95;
     createTrackbar("Retained Variance (%)",windowname,&pos,100,onTrackbar,(void*)&p);
     //display until user press 'q'
@@ -129,8 +137,14 @@ int main(int argc, char** argv)
     {
         key = (char)waitKey();
     }
+<<<<<<< HEAD
 //    cout<<file<<endl;
 //    parser.printMessage();
 //    cout<<"number of images:"<<imgs.size();
+=======
+    cout<<file<<endl;
+    parser.printMessage();
+    cout<<"number of images:"<<imgs.size();
+>>>>>>> 0bd683414b64d820036d12bd0aa43d090530fbd6
     return 0;
 }
