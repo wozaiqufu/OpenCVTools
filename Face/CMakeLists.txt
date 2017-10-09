@@ -3,7 +3,8 @@ project(Face)
 
 set(CMAKE_CXX_STANDARD 11)
 find_package(OpenCV REQUIRED)
-set(SOURCE_FILES main.cpp)
+set(SOURCE_FILES main.cpp
+        EigenFaces.cpp)
 
 set(dir ${CMAKE_CURRENT_SOURCE_DIR}/build/)
 set(EXECUTABLE_OUTPUT_PATH ${dir} CACHE PATH "Build directory" FORCE)
